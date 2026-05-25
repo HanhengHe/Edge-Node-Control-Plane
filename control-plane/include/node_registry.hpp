@@ -33,9 +33,9 @@ namespace proxy_scheduler
         // getters
         void get_node(NodeId node_id, std::function<void(std::optional<Node>)> callback);
         void get_all_nodes(
-            std::function<void(std::optional<std::vector<Node>>)> callback);
+            std::function<void(std::vector<Node>)> callback);
         void get_healthy_nodes(
-            std::function<void(std::optional<std::vector<Node>>)> callback);
+            std::function<void(std::vector<Node>)> callback);
         void mark_expired_nodes(std::chrono::seconds timeout);
         void size(std::function<void(size_t)> callback);
 

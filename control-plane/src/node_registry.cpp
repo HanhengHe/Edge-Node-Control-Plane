@@ -109,7 +109,7 @@ namespace proxy_scheduler
     }
 
     void NodeRegistry::get_all_nodes(
-        std::function<void(std::optional<std::vector<Node>>)> callback)
+        std::function<void(std::vector<Node>)> callback)
     {
         boost::asio::post(
             strand_,
@@ -128,7 +128,7 @@ namespace proxy_scheduler
     }
 
     void NodeRegistry::get_healthy_nodes(
-        std::function<void(std::optional<std::vector<Node>>)> callback)
+        std::function<void(std::vector<Node>)> callback)
     {
         boost::asio::post(
             strand_,
