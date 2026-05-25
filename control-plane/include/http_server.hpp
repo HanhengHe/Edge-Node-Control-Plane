@@ -50,6 +50,7 @@ namespace proxy_scheduler
 
     private:
         void do_accept();
+
         boost::asio::io_context &io_;
         tcp::acceptor acceptor_;
 

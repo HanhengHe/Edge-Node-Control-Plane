@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS json)
 
 add_executable(proxy_scheduler
     control-plane/src/main.cpp
@@ -22,6 +22,7 @@ target_include_directories(proxy_scheduler PRIVATE
 
 target_link_libraries(proxy_scheduler PRIVATE
     Boost::boost
+    Boost::json
 )
 
 target_compile_options(proxy_scheduler PRIVATE
