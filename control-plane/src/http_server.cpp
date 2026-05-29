@@ -129,6 +129,75 @@ namespace proxy_scheduler
             }
         }
 
+        if (method == http::verb::post && target == "/nodes/heartbeat")
+        {
+            json::value parsed;
+
+            try
+            {
+                parsed = json::parse(request_.body());
+            }
+            catch (const std::exception &)
+            {
+                make_error(http::status::bad_request, "invalid json");
+                return;
+            }
+
+            if (!parsed.is_object())
+            {
+                make_error(http::status::bad_request, "request body must be a json object");
+                return;
+            }
+
+            const auto &obj = parsed.as_object();
+
+            try
+            {
+                const auto node_id =
+                    static_cast<NodeId>(obj.at("node_id").as_int64());
+
+                registry_.update_heartbeat(node_id);
+
+                if (auto *current_load = obj.if_contains("current_load");
+                    current_load && current_load->is_int64())
+                {
+                    const auto load =
+                        static_cast<std::uint32_t>(current_load->as_int64());
+
+                    const auto max_capacity =
+                        obj.if_contains("max_capacity") && obj.at("max_capacity").is_int64()
+                            ? static_cast<std::uint32_t>(obj.at("max_capacity").as_int64())
+                            : 100;
+
+                    const auto latency_ms =
+                        obj.if_contains("latency_ms") && obj.at("latency_ms").is_int64()
+                            ? static_cast<std::uint32_t>(obj.at("latency_ms").as_int64())
+                            : 0;
+
+                    registry_.update_metrics(
+                        node_id,
+                        load,
+                        max_capacity,
+                        latency_ms);
+                }
+
+                response.result(http::status::ok);
+
+                json::object body;
+                body["status"] = "heartbeat_received";
+                body["node_id"] = node_id;
+
+                response.body() = json::serialize(body);
+                send_response(std::move(response));
+                return;
+            }
+            catch (const std::exception &)
+            {
+                make_error(http::status::bad_request, "missing or invalid heartbeat fields");
+                return;
+            }
+        }
+
         if (method == http::verb::get && target == "/nodes")
         {
             registry_.get_all_nodes(
