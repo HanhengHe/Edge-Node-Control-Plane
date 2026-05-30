@@ -1,0 +1,32 @@
+services:
+  control-plane:
+    build:
+      context: ./control-plane
+    ports:
+      - "8080:8080"
+
+  agent-1:
+    build:
+      context: ./node-agent
+    environment:
+      NODE_ID: "1"
+      REGION: "ca-central"
+      HOST: "agent-1"
+      PORT: "9001"
+      MAX_CAPACITY: "100"
+      CONTROL_PLANE_URL: "http://control-plane:8080"
+    depends_on:
+      - control-plane
+
+  agent-2:
+    build:
+      context: ./node-agent
+    environment:
+      NODE_ID: "2"
+      REGION: "us-east"
+      HOST: "agent-2"
+      PORT: "9002"
+      MAX_CAPACITY: "100"
+      CONTROL_PLANE_URL: "http://control-plane:8080"
+    depends_on:
+      - control-plane

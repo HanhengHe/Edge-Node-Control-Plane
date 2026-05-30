@@ -9,15 +9,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(Boost REQUIRED COMPONENTS json)
 
 add_executable(proxy_scheduler
-    control-plane/src/main.cpp
-    control-plane/src/http_server.cpp
-    control-plane/src/node_registry.cpp
-    control-plane/src/health_checker.cpp
-    control-plane/src/scheduler.cpp
+    src/main.cpp
+    src/http_server.cpp
+    src/node_registry.cpp
+    src/health_checker.cpp
+    src/scheduler.cpp
 )
 
 target_include_directories(proxy_scheduler PRIVATE
-    control-plane/include
+    src/include
 )
 
 target_link_libraries(proxy_scheduler PRIVATE
