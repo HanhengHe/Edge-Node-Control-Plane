@@ -72,6 +72,12 @@ namespace proxy_scheduler
                 it->second.current_load = current_load;
                 it->second.max_capacity = max_capacity;
                 it->second.latency_ms = latency_ms;
+
+                if (it->second.status == NodeStatus::Draining &&
+                    it->second.current_load == 0)
+                {
+                    self->nodes_.erase(it);
+                }
             });
     }
 
@@ -88,6 +94,51 @@ namespace proxy_scheduler
                 }
 
                 it->second.status = status;
+            });
+    }
+
+    void NodeRegistry::set_node_draining(NodeId node_id)
+    {
+        boost::asio::post(
+            strand_,
+            [self = shared_from_this(), node_id]
+            {
+                auto it = self->nodes_.find(node_id);
+                if (it == self->nodes_.end())
+                {
+                    return;
+                }
+
+                it->second.status = NodeStatus::Draining;
+            });
+    }
+
+    void NodeRegistry::try_remove_drained_node(NodeId node_id)
+    {
+        boost::asio::post(
+            strand_,
+            [self = shared_from_this(), node_id]
+            {
+                auto it = self->nodes_.find(node_id);
+                if (it == self->nodes_.end())
+                {
+                    return;
+                }
+
+                if (it->second.status == NodeStatus::Draining && it->second.current_load == 0)
+                {
+                    self->nodes_.erase(it);
+                }
+            });
+    }
+
+    void NodeRegistry::force_remove_node(NodeId node_id)
+    {
+        boost::asio::post(
+            strand_,
+            [self = shared_from_this(), node_id]
+            {
+                self->nodes_.erase(node_id);
             });
     }
 

@@ -64,8 +64,8 @@ r = requests.get(f"{BASE}/nodes")
 show("GET /nodes after heartbeat", r)
 
 # 8. wait for timeout
-print("\nWaiting 16 seconds to test heartbeat timeout...")
-time.sleep(16)
+print("\nWaiting 20 seconds to test heartbeat timeout...")
+time.sleep(20)
 
 # 9. list nodes after timeout
 r = requests.get(f"{BASE}/nodes")

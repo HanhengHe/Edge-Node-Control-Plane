@@ -14,6 +14,7 @@ namespace proxy_scheduler
         Draining
     };
 
+    // unused for now, but can be extended in the future to support more complex routing policies
     enum class RoutePolicy
     {
         LeastLoad,

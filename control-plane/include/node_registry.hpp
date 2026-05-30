@@ -29,6 +29,9 @@ namespace proxy_scheduler
         void update_heartbeat(NodeId node_id);
         void update_metrics(NodeId ode_id, std::uint32_t current_load, std::uint32_t max_capacity, std::uint32_t latency_ms);
         void set_status(NodeId node_id, NodeStatus status);
+        void set_node_draining(NodeId node_id);
+        void try_remove_drained_node(NodeId node_id);
+        void force_remove_node(NodeId node_id);
 
         // getters
         void get_node(NodeId node_id, std::function<void(std::optional<Node>)> callback);
