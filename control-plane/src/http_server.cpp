@@ -471,7 +471,7 @@ namespace proxy_scheduler
             }
         }
 
-        if ((method == http::verb::delete_ || method == http::verb::post) &&
+        if ((method == http::verb::delete_) &&
             target == "/nodes/remove")
         {
             json::value parsed;
