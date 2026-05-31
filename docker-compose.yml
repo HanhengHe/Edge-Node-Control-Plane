@@ -13,6 +13,7 @@ services:
       REGION: "ca-central"
       HOST: "agent-1"
       PORT: "9001"
+      CURRENT_LOAD: "30"
       MAX_CAPACITY: "100"
       CONTROL_PLANE_URL: "http://control-plane:8080"
     depends_on:
@@ -26,6 +27,21 @@ services:
       REGION: "us-east"
       HOST: "agent-2"
       PORT: "9002"
+      CURRENT_LOAD: "70"
+      MAX_CAPACITY: "100"
+      CONTROL_PLANE_URL: "http://control-plane:8080"
+    depends_on:
+      - control-plane
+      
+  agent-3:
+    build:
+      context: ./node-agent
+    environment:
+      NODE_ID: "3"
+      REGION: "us-west"
+      HOST: "agent-3"
+      PORT: "9003"
+      CURRENT_LOAD: "70"
       MAX_CAPACITY: "100"
       CONTROL_PLANE_URL: "http://control-plane:8080"
     depends_on:

@@ -117,7 +117,7 @@ func (a *NodeAgent) heartbeatLoop(ctx context.Context) {
 
 			req := &HeartbeatRequest{
 				NodeID:      a.config.NodeID,
-				CurrentLoad: 0, // TODO: Implement load tracking
+				CurrentLoad: a.config.CurrentLoad,
 				MaxCapacity: maxCapacity,
 				LatencyMS:   latency,
 			}
