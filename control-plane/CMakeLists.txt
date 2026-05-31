@@ -17,7 +17,7 @@ add_executable(proxy_scheduler
 )
 
 target_include_directories(proxy_scheduler PRIVATE
-    src/include
+    include
 )
 
 target_link_libraries(proxy_scheduler PRIVATE
