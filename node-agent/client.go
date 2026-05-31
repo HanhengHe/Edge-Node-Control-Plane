@@ -10,15 +10,6 @@ import (
 	"time"
 )
 
-type IClient interface {
-	Register(ctx context.Context, req *RegisterRequest) (RegisterResponse, error)
-	Heartbeat(ctx context.Context, req *HeartbeatRequest) (HeartbeatResponse, error)
-	GetLatency(ctx context.Context, nodeID uint32) (uint32, error)
-	Schedule(ctx context.Context, req *ScheduleRequest) (ScheduleResponse, error)
-	Drain(ctx context.Context, req *DrainRequest) (DrainResponse, error)
-	Remove(ctx context.Context, req *RemoveRequest) (RemoveResponse, error)
-}
-
 type Client struct {
 	baseURL string
 	httpClient *http.Client
