@@ -102,7 +102,7 @@ func (a *NodeAgent) heartbeatLoop(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			latencyCtx, cancel := context.WithTimeout(ctx, a.config.RequestTimeout)
-			latency, err := a.client.GetLatency(latencyCtx, a.config.NodeID)
+			latency, err := a.client.GetLatency(latencyCtx)
 			cancel()
 
 			if err != nil {

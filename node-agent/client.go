@@ -53,7 +53,7 @@ func (c *Client) Heartbeat(ctx context.Context, req *HeartbeatRequest) (Heartbea
 	return resp, nil
 }
 
-func (c *Client) GetLatency(ctx context.Context, nodeID uint32) (uint32, error) {
+func (c *Client) GetLatency(ctx context.Context) (uint32, error) {
 	url := c.baseURL + "/health"
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
