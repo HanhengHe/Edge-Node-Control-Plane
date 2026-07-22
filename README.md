@@ -100,6 +100,9 @@ Example response:
 }
 ```
 
+Successful registration returns `201 Created`. Registering an existing `node_id`
+returns `409 Conflict` without replacing the existing node.
+
 ### Heartbeat
 
 ```http
@@ -125,6 +128,8 @@ Example response:
   "node_id": 1
 }
 ```
+
+Heartbeat updates are applied atomically. An unknown `node_id` returns `404 Not Found`.
 
 ### List Nodes
 
@@ -245,14 +250,13 @@ Example request:
 }
 ```
 
-Example response:
+Successful removal returns `204 No Content`; removing an unknown node returns
+`404 Not Found`.
 
-```json
-{
-  "status": "node_removed",
-  "node_id": 1
-}
-```
+All JSON mutation endpoints require `Content-Type: application/json`. Malformed
+requests return `400 Bad Request`, while well-formed values outside accepted ranges
+return `422 Unprocessable Entity`. Validation occurs before unsigned integer
+conversion.
 
 ## Scheduling Policy
 
@@ -361,6 +365,11 @@ POST /nodes/drain
 
 The control plane marks the node as `Draining`, which excludes it from scheduling decisions. This models graceful node removal before shutdown.
 
+The agent first cancels and joins its heartbeat loop, then performs the drain call
+synchronously with a separate shutdown deadline. Configure that deadline with
+`SHUTDOWN_TIMEOUT` (default: `5s`). The process exits only after Drain succeeds or
+the deadline expires.
+
 Example:
 
 ```bash
@@ -387,6 +396,23 @@ curl http://localhost:8080/nodes
 │   └── Dockerfile
 ├── docker-compose.yml
 └── README.md
+```
+
+## Tests
+
+Run the C++ regression tests after building:
+
+```bash
+cmake -S control-plane -B control-plane/build -G Ninja
+cmake --build control-plane/build
+ctest --test-dir control-plane/build --output-on-failure
+```
+
+Run the Go shutdown and timeout tests with race detection:
+
+```bash
+cd node-agent
+go test -race ./...
 ```
 
 ## Tech Stack

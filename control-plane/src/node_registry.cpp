@@ -11,134 +11,86 @@ namespace proxy_scheduler
     {
     }
 
-    void NodeRegistry::register_node(Node node)
+    void NodeRegistry::register_node(Node node, MutationCallback callback)
     {
         boost::asio::post(
             strand_,
             [self = shared_from_this(),
-             node = std::move(node)]() mutable
+             node = std::move(node), callback = std::move(callback)]() mutable
             {
+                if (self->nodes_.contains(node.node_id))
+                {
+                    callback(MutationResult::AlreadyExists);
+                    return;
+                }
+
                 node.last_heartbeat = std::chrono::steady_clock::now();
                 node.status = NodeStatus::Healthy;
 
-                self->nodes_[node.node_id] = std::move(node);
+                self->nodes_.emplace(node.node_id, std::move(node));
+                callback(MutationResult::Success);
             });
     }
 
-    void NodeRegistry::remove_node(NodeId node_id)
+    void NodeRegistry::remove_node(NodeId node_id, MutationCallback callback)
     {
         boost::asio::post(
             strand_,
-            [self = shared_from_this(), node_id]()
+            [self = shared_from_this(), node_id, callback = std::move(callback)]()
             {
-                self->nodes_.erase(node_id);
+                callback(self->nodes_.erase(node_id) == 1
+                             ? MutationResult::Success
+                             : MutationResult::NotFound);
             });
     }
 
-    void NodeRegistry::update_heartbeat(NodeId node_id)
+    void NodeRegistry::update_heartbeat(
+        NodeId node_id,
+        std::uint32_t current_load,
+        std::uint32_t max_capacity,
+        std::uint32_t latency_ms,
+        MutationCallback callback)
     {
         boost::asio::post(
             strand_,
-            [self = shared_from_this(), node_id]()
+            [self = shared_from_this(), node_id, current_load, max_capacity,
+             latency_ms, callback = std::move(callback)]()
             {
                 auto it = self->nodes_.find(node_id);
                 if (it == self->nodes_.end())
                 {
+                    callback(MutationResult::NotFound);
                     return;
                 }
 
                 it->second.last_heartbeat = std::chrono::steady_clock::now();
+                it->second.current_load = current_load;
+                it->second.max_capacity = max_capacity;
+                it->second.latency_ms = latency_ms;
 
                 if (it->second.status == NodeStatus::Unhealthy)
                 {
                     it->second.status = NodeStatus::Healthy;
                 }
+                callback(MutationResult::Success);
             });
     }
 
-    void NodeRegistry::update_metrics(NodeId node_id, std::uint32_t current_load, std::uint32_t max_capacity, std::uint32_t latency_ms)
+    void NodeRegistry::set_node_draining(NodeId node_id, MutationCallback callback)
     {
         boost::asio::post(
             strand_,
-            [self = shared_from_this(),
-             node_id, current_load, max_capacity, latency_ms]()
+            [self = shared_from_this(), node_id, callback = std::move(callback)]
             {
                 auto it = self->nodes_.find(node_id);
                 if (it == self->nodes_.end())
                 {
-                    return;
-                }
-
-                it->second.current_load = current_load;
-                it->second.max_capacity = max_capacity;
-                it->second.latency_ms = latency_ms;
-
-                if (it->second.status == NodeStatus::Draining &&
-                    it->second.current_load == 0)
-                {
-                    self->nodes_.erase(it);
-                }
-            });
-    }
-
-    void NodeRegistry::set_status(NodeId node_id, NodeStatus status)
-    {
-        boost::asio::post(
-            strand_,
-            [self = shared_from_this(), node_id, status]
-            {
-                auto it = self->nodes_.find(node_id);
-                if (it == self->nodes_.end())
-                {
-                    return;
-                }
-
-                it->second.status = status;
-            });
-    }
-
-    void NodeRegistry::set_node_draining(NodeId node_id)
-    {
-        boost::asio::post(
-            strand_,
-            [self = shared_from_this(), node_id]
-            {
-                auto it = self->nodes_.find(node_id);
-                if (it == self->nodes_.end())
-                {
+                    callback(MutationResult::NotFound);
                     return;
                 }
 
                 it->second.status = NodeStatus::Draining;
-            });
-    }
-
-    void NodeRegistry::try_remove_drained_node(NodeId node_id)
-    {
-        boost::asio::post(
-            strand_,
-            [self = shared_from_this(), node_id]
-            {
-                auto it = self->nodes_.find(node_id);
-                if (it == self->nodes_.end())
-                {
-                    return;
-                }
-
-                if (it->second.status == NodeStatus::Draining && it->second.current_load == 0)
-                {
-                    self->nodes_.erase(it);
-                }
-            });
-    }
-
-    void NodeRegistry::force_remove_node(NodeId node_id)
-    {
-        boost::asio::post(
-            strand_,
-            [self = shared_from_this(), node_id]
-            {
-                self->nodes_.erase(node_id);
+                callback(MutationResult::Success);
             });
     }
 
@@ -160,7 +112,7 @@ namespace proxy_scheduler
     }
 
     void NodeRegistry::get_all_nodes(
-        std::function<void(std::vector<Node> const &)> callback)
+        std::function<void(std::vector<Node>)> callback)
     {
         boost::asio::post(
             strand_,
@@ -179,7 +131,7 @@ namespace proxy_scheduler
     }
 
     void NodeRegistry::get_healthy_nodes(
-        std::function<void(std::vector<Node> const &)> callback)
+        std::function<void(std::vector<Node>)> callback)
     {
         boost::asio::post(
             strand_,

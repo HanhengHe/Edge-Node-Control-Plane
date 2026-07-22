@@ -3,8 +3,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 
-#include "node_registry.hpp"
-#include "scheduler.hpp"
+#include "api/handlers.hpp"
 
 namespace proxy_scheduler
 {
@@ -17,8 +16,7 @@ namespace proxy_scheduler
     public:
         HttpSession(
             tcp::socket socket,
-            NodeRegistry &registry,
-            Scheduler &scheduler);
+            api::ApiHandler &handler);
         void start();
 
     private:
@@ -28,10 +26,9 @@ namespace proxy_scheduler
 
         tcp::socket socket_;
         beast::flat_buffer buffer_;
-        http::request<http::string_body> request_;
-
-        NodeRegistry &registry_;
-        Scheduler &scheduler_;
+        http::request_parser<http::string_body> parser_;
+        boost::asio::steady_timer read_timer_;
+        api::ApiHandler &handler_;
     };
 
     class HttpServer : public std::enable_shared_from_this<HttpServer>
@@ -54,8 +51,7 @@ namespace proxy_scheduler
         boost::asio::io_context &io_;
         tcp::acceptor acceptor_;
 
-        NodeRegistry &registry_;
-        Scheduler &scheduler_;
+        api::ApiHandler handler_;
 
         bool stopped_{false};
     };

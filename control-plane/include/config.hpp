@@ -14,6 +14,4 @@ namespace proxy_scheduler::config
         std::chrono::seconds{15};
 
     inline constexpr std::uint32_t default_max_capacity = 100;
-
-    inline constexpr std::size_t max_nodes = 10'000;
 }

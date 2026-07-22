@@ -11,7 +11,7 @@ import (
 )
 
 type Client struct {
-	baseURL string
+	baseURL    string
 	httpClient *http.Client
 }
 
@@ -120,10 +120,13 @@ func (c *Client) postJSON(ctx context.Context, path string, payload any, respons
 		return fmt.Errorf("HTTP request failed: %v", err)
 	}
 	defer resp.Body.Close()
-	
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {	
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return fmt.Errorf("HTTP request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+	if resp.StatusCode == http.StatusNoContent {
+		return nil
 	}
 
 	if response != nil {
@@ -148,7 +151,7 @@ func (c *Client) deleteJSON(ctx context.Context, path string, payload any, respo
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("HTTP request failed: %v", err)
@@ -158,6 +161,9 @@ func (c *Client) deleteJSON(ctx context.Context, path string, payload any, respo
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
 		return fmt.Errorf("HTTP request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+	if resp.StatusCode == http.StatusNoContent {
+		return nil
 	}
 
 	if response != nil {

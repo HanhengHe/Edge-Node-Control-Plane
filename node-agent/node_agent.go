@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"time"
 	"log"
+	"time"
 )
 
 type NodeAgent struct {
@@ -19,11 +19,27 @@ func (a *NodeAgent) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to register node: %v", err)
 	}
 
-	// Start heartbeat loop
-	go a.heartbeatLoop(ctx)
+	// Give heartbeats their own lifecycle so shutdown can stop and join them
+	// before sending the drain mutation.
+	heartbeatCtx, stopHeartbeats := context.WithCancel(context.Background())
+	heartbeatDone := make(chan struct{})
+	go func() {
+		defer close(heartbeatDone)
+		a.heartbeatLoop(heartbeatCtx)
+	}()
 
 	<-ctx.Done()
+	stopHeartbeats()
+	<-heartbeatDone
 
+	log.Printf("shutdown signal received, draining node_id=%d", a.config.NodeID)
+	drainCtx, cancelDrain := context.WithTimeout(context.Background(), a.config.ShutdownTimeout)
+	defer cancelDrain()
+	_, err = a.client.Drain(drainCtx, &DrainRequest{NodeID: a.config.NodeID})
+	if err != nil {
+		return fmt.Errorf("failed to drain node: %w", err)
+	}
+	log.Printf("node drained successfully: node_id=%d", a.config.NodeID)
 	return nil
 }
 
@@ -33,9 +49,10 @@ func (a *NodeAgent) Register(ctx context.Context) error {
 		Region:      a.config.Region,
 		Host:        a.config.Host,
 		Port:        a.config.Port,
+		CurrentLoad: a.config.CurrentLoad,
 		MaxCapacity: a.config.MaxCapacity,
 	}
-	
+
 	log.Printf(
 		"starting node agent: node_id=%d region=%s host=%s port=%d control_plane=%s",
 		a.config.NodeID,
@@ -78,7 +95,7 @@ func (a *NodeAgent) SendRequest(
 			return nil
 		}
 
-		log.Printf("operation failed: %v; retrying in %sms", err, delay)
+		log.Printf("operation failed: %v; retrying in %s", err, delay)
 		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():
@@ -101,9 +118,15 @@ func (a *NodeAgent) heartbeatLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
+			if ctx.Err() != nil {
+				return
+			}
 			latencyCtx, cancel := context.WithTimeout(ctx, a.config.RequestTimeout)
 			latency, err := a.client.GetLatency(latencyCtx)
 			cancel()
+			if ctx.Err() != nil {
+				return
+			}
 
 			if err != nil {
 				log.Printf("failed to get latency: %v", err)
@@ -135,17 +158,6 @@ func (a *NodeAgent) heartbeatLoop(ctx context.Context) {
 				"heartbeat sent: node_id=%d load=%d max_capacity=%d latency_ms=%d",
 				req.NodeID, req.CurrentLoad, req.MaxCapacity, req.LatencyMS)
 		case <-ctx.Done():
-			log.Printf("shutdown signal received, draining node_id=%d", a.config.NodeID)
-			drainCtx, cancel := context.WithTimeout(context.Background(), a.config.RequestTimeout)
-			defer cancel()
-			
-			_, err := a.client.Drain(drainCtx, &DrainRequest{NodeID: a.config.NodeID}); 
-			if err != nil {
-				log.Printf("failed to drain node: %v", err)
-			} else {
-				log.Printf("node drained successfully: node_id=%d", a.config.NodeID)
-			}
-
 			return
 		}
 	}
